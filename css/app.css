@@ -209,3 +209,7 @@ dialog::backdrop{background:rgba(10,20,40,.5)}
 .st.ok{background:none;padding:0;border-radius:0}
 .item .av{color:#fff;font-size:1.1rem}
 .item span[dir="ltr"]{text-align:right}
+.ord{flex:none;display:flex;flex-direction:column;gap:2px}
+.ord button{width:26px;height:17px;border:1px solid var(--line);border-radius:6px;background:var(--surface-2);color:var(--muted);cursor:pointer;display:grid;place-items:center;font-size:.6rem;padding:0}
+.ord button:hover:not([disabled]){color:var(--brand-ink);border-color:var(--brand-ink)}
+.ord button[disabled]{opacity:.35;cursor:default}

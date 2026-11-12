@@ -59,8 +59,9 @@ export function editPerson(uid) {
 
 export function editGroups() {
   const ps = people(), count = id => ps.filter(p => p.groups.includes(id)).length;
-  const html = '<form id="gf"><p class="hint">שינוי שם קבוצה לא משנה את השיוכים. מחיקת קבוצה מסירה אותה מכל האפליקציות (הודעות שנשלחו אליה לא יוצגו יותר).</p><div class="glist">' +
-    groups().map(g => '<div class="grow1" data-id="' + esc(g.id) + '"><input name="label" required maxlength="30" value="' + esc(g.label) + '" aria-label="שם הקבוצה"><span class="none">' + count(g.id) + ' אנשי צוות</span><button type="button" class="del" data-delg aria-label="מחיקת הקבוצה"><i class="fa-solid fa-trash-can"></i></button></div>').join("") +
+  const gl = groups();
+  const html = '<form id="gf"><p class="hint">הסדר כאן הוא הסדר בכל האפליקציות (עמודות הטבלה, שורת הסינון, תיבות הסימון). שינוי שם לא משנה את השיוכים. מחיקה מסירה את הקבוצה מכל האפליקציות (הודעות שנשלחו אליה לא יוצגו יותר).</p><div class="glist">' +
+    gl.map((g, i) => '<div class="grow1" data-id="' + esc(g.id) + '"><span class="ord"><button type="button" data-mv="up" aria-label="העלאה"' + (i ? "" : " disabled") + '><i class="fa-solid fa-chevron-up"></i></button><button type="button" data-mv="down" aria-label="הורדה"' + (i < gl.length - 1 ? "" : " disabled") + '><i class="fa-solid fa-chevron-down"></i></button></span><input name="label" required maxlength="30" value="' + esc(g.label) + '" aria-label="שם הקבוצה"><span class="none">' + count(g.id) + ' אנשי צוות</span><button type="button" class="del" data-delg aria-label="מחיקת הקבוצה"><i class="fa-solid fa-trash-can"></i></button></div>').join("") +
     '</div><div class="grow1 newg"><input id="gnew" maxlength="30" placeholder="קבוצה חדשה, למשל: רכזי מקצוע" aria-label="שם קבוצה חדשה"><button type="button" class="btn ghost small" id="gadd"><i class="fa-solid fa-plus"></i> הוספה</button></div>' +
     '<div class="dfoot"><span class="grow"></span><button type="button" class="btn ghost" data-close>סגירה</button><button class="btn">שמירת השמות</button></div></form>';
   openDlg("קבוצות", html, d => {
@@ -70,5 +71,7 @@ export function editGroups() {
     d.querySelector("#gadd").onclick = () => { const label = d.querySelector("#gnew").value.trim(); if (label) save([...cur(), {id: "g" + rid(), label}]); };
     d.querySelector("#gnew").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); d.querySelector("#gadd").click(); } };
     for (const b of d.querySelectorAll("[data-delg]")) b.onclick = () => { const id = b.closest(".grow1").dataset.id, g = groups().find(x => x.id === id); if (confirm("למחוק את הקבוצה \"" + g.label + "\"? (" + count(id) + " אנשי צוות משויכים)")) save(cur().filter(x => x.id !== id)); };
+    // הזזת קבוצה למעלה/למטה: מזיז בסדר ושומר מיד (עם שינויי השמות שנעשו עד כה)
+    for (const b of d.querySelectorAll("[data-mv]")) b.onclick = () => { const list = cur(), i = list.findIndex(x => x.id === b.closest(".grow1").dataset.id), j = b.dataset.mv === "up" ? i - 1 : i + 1; if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; save(list); };
   });
 }
