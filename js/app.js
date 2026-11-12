@@ -3,7 +3,8 @@ import {S, onChange, changed} from "./state.js";
 import {DEMO, STAFF_APP} from "./config.js";
 import {$, esc} from "./util.js";
 import {initAuth, loginHtml, bindLogin, signOut, api, idToken} from "./auth.js";
-import {isAdmin, groups, people, person, authOn, authOf, loginState, roleLabel, saveStaff, saveAuth, suggestGroups, dutyUnmatched, setAlias} from "./data.js";
+import {isAdmin, groups, people, person, authOn, authOf, loginState, roleLabel, groupLabel, saveStaff, saveAuth, suggestGroups, dutyUnmatched, setAlias, pendingList, approvePending, rejectPending} from "./data.js";
+import {onboardUrl} from "./hash.js";
 import {empty, tags, avatar, tryDo} from "./ui.js";
 import {editPerson, editGroups} from "./edit.js";
 import {exportFile, importFile} from "./excel.js";
@@ -20,9 +21,18 @@ function shown() {
 }
 const pressed = (attr, list, cur) => list.map(x => '<button type="button" data-act="' + attr + '" data-v="' + esc(x.id) + '" aria-pressed="' + (x.id === cur) + '">' + esc(x.label) + "</button>").join("");
 
+function pendingHtml() {
+  const list = pendingList(); if (!list.length) return "";
+  const g = ids => (ids || []).map(groupLabel).filter(Boolean).join(", ") || "בלי שיוך";
+  return '<div class="card note warn"><b><i class="fa-solid fa-user-clock"></i> ' + list.length + ' בקשות עדכון פרטים ממתינות לאישור</b>' +
+    '<p>אנשי צוות שעדכנו את פרטיהם דרך הקישור. אישור שומר את המייל, הטלפון והקבוצות. שום דבר לא נשמר עד שמאשרים.</p>' +
+    '<div class="plist">' + list.map(r => '<div class="pend" data-uid="' + esc(r.uid) + '"><div><b>' + esc(r.name) + '</b>' +
+      '<span dir="ltr">' + esc([r.email, r.phone].filter(Boolean).join(" · ")) + '</span><span class="none">קבוצות: ' + esc(g(r.groups)) + '</span></div>' +
+      '<div class="pact"><button type="button" class="btn small" data-act="papprove">אישור</button><button type="button" class="btn ghost small" data-act="preject">דחייה</button></div></div>').join("") + "</div></div>";
+}
 function topHtml() {
   const sug = suggestGroups();
-  return (DEMO ? '<div class="demo"><b>מצב הדגמה.</b> שמות בדויים שנשמרים רק בדפדפן הזה.</div>' : "") +
+  return pendingHtml() + (DEMO ? '<div class="demo"><b>מצב הדגמה.</b> שמות בדויים שנשמרים רק בדפדפן הזה.</div>' : "") +
     (S.err ? '<div class="err" role="alert">' + esc(S.err) + "</div>" : "") +
     (S.auth && !authOn() ? '<div class="card note warn"><b><i class="fa-solid fa-right-left"></i> להעביר את ניהול הכניסה לכאן</b><p>כרגע רשימת תעודות הזהות והמיילים מנוהלת בלוח המערכות ובגיליון המיילים. לחיצה אחת מעתיקה אותה לכאן, ומאותו רגע מוסיפים, מעדכנים ומסירים אנשי צוות רק מהמסך הזה. לוח המערכות עצמו לא משתנה.</p><div><button type="button" class="btn" data-act="ttimport">ייבוא רשימת הצוות</button></div></div>' : "") +
     (sug.length ? '<div class="card note"><b><i class="fa-solid fa-wand-magic-sparkles"></i> ' + sug.length + ' מחנכים עוד לא משויכים לפי מערכת השעות</b><p>שיוך לקבוצת "מחנכים" ולבית של הכיתה שלהם. הפעולה רק מוסיפה שיוכים.</p><div><button type="button" class="btn ghost" data-act="suggest">שיוך אוטומטי</button></div></div>' : "");
@@ -78,10 +88,16 @@ function render() {
       '<div class="seg" id="mode" role="group" aria-label="תצוגה"></div><span class="grow"></span>' +
       '<details class="menu"><summary class="btn ghost"><i class="fa-solid fa-file-excel"></i> אקסל</summary><div><button type="button" data-act="xlsx"><i class="fa-solid fa-download"></i> ייצוא לאקסל (xlsx)</button><button type="button" data-act="csv"><i class="fa-solid fa-download"></i> ייצוא ל-CSV</button><button type="button" data-act="pick"><i class="fa-solid fa-upload"></i> ייבוא מקובץ…</button>' +
       '<p class="hint">מייצאים, ממלאים טלפונים ומיילים באקסל, ומייבאים חזרה. לפני השמירה מוצגת רשימת השינויים.</p></div></details>' +
-      '<button type="button" class="btn ghost" data-act="groups"><i class="fa-solid fa-layer-group"></i> קבוצות</button><button type="button" class="btn" data-act="new"><i class="fa-solid fa-user-plus"></i> איש צוות חדש</button></div>' +
+      '<button type="button" class="btn ghost" data-act="link"><i class="fa-solid fa-link"></i> קישור לעדכון פרטים</button><button type="button" class="btn ghost" data-act="groups"><i class="fa-solid fa-layer-group"></i> קבוצות</button><button type="button" class="btn" data-act="new"><i class="fa-solid fa-user-plus"></i> איש צוות חדש</button></div>' +
       '<div class="chips" id="chips" role="group" aria-label="סינון"></div><p class="hint" id="count"></p><div id="list"></div><div id="extra" class="stack"></div><input type="file" id="file" accept=".xlsx,.csv,text/csv" hidden>';
     refresh();
   }
+}
+
+async function copyLink(btn) {
+  const url = onboardUrl();
+  try { await navigator.clipboard.writeText(url); const t = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-check"></i> הקישור הועתק'; setTimeout(() => btn.innerHTML = t, 1800); }
+  catch (e) { prompt("הקישור לשליחה לצוות (להעתיק):", url); }
 }
 
 // ---- אירועים: האזנה אחת על כל המסך ----
@@ -93,6 +109,12 @@ el.addEventListener("click", async e => {
   else if (act === "edit") editPerson(b.closest("[data-uid]").dataset.uid);
   else if (act === "new") editPerson("");
   else if (act === "groups") editGroups();
+  else if (act === "link") copyLink(b);
+  else if (act === "papprove" || act === "preject") {
+    const req = pendingList().find(x => x.uid === b.closest("[data-uid]").dataset.uid); if (!req) return;
+    if (act === "preject") { if (confirm("לדחות ולמחוק את הבקשה של " + req.name + "?")) tryDo(() => rejectPending(req)); }
+    else if (confirm("לאשר את הפרטים של " + req.name + "?\nהמייל, הטלפון והקבוצות יישמרו.")) tryDo(() => approvePending(req));
+  }
   else if (act === "xlsx" || act === "csv") exportFile(act);
   else if (act === "pick") $("file").click();
   else if (act === "suggest") {

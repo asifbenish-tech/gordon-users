@@ -213,3 +213,17 @@ dialog::backdrop{background:rgba(10,20,40,.5)}
 .ord button{width:26px;height:17px;border:1px solid var(--line);border-radius:6px;background:var(--surface-2);color:var(--muted);cursor:pointer;display:grid;place-items:center;font-size:.6rem;padding:0}
 .ord button:hover:not([disabled]){color:var(--brand-ink);border-color:var(--brand-ink)}
 .ord button[disabled]{opacity:.35;cursor:default}
+
+/* בקשות עדכון עצמי (ממתינות לאישור) */
+.plist{display:grid;gap:8px;margin-top:4px}
+.pend{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.pend>div:first-child{flex:1;min-width:0;display:grid;gap:1px}
+.pend b{color:var(--ink);font-size:.96rem}
+.pend span{font-size:.84rem;color:var(--muted)}
+.pact{flex:none;display:flex;gap:6px}
+.pact .btn{width:auto;padding:7px 14px}
+/* עמוד העדכון העצמי */
+body.onb .view{max-width:560px}
+.form.wide{max-width:520px}
+.form.wide .aud{text-align:right}
+.bigico.ok{color:var(--green);background:color-mix(in srgb,var(--green) 13%,transparent)}

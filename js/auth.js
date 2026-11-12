@@ -6,6 +6,8 @@ import {openStore} from "./store.js";
 import {startData} from "./data.js";
 import {DEMO_USERS} from "./demo.js";
 import {$, esc, ls, nameOf} from "./util.js";
+import {idHash} from "./hash.js";
+export {idHash};
 
 let A, auth, fbApp, step = {s: "id"};
 const LOGO = '<div class="biglogo"><img src="logo.png" alt="סמל בית חינוך א.ד. גורדון" onerror="this.parentNode.remove()"></div>';
@@ -102,12 +104,4 @@ export const idToken = () => auth && auth.currentUser ? auth.currentUser.getIdTo
 export async function api(body) {
   const r = await fetch(AUTH_API, {method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify(body)});
   return r.json();
-}
-// אותו גיבוב כמו בלוח המערכות ובאפליקציית הצוות (PBKDF2-SHA256, 100 אלף איטרציות). במצב הדגמה - גיבוב מדומה.
-export async function idHash(raw) {
-  const id = String(raw).replace(/\D/g, "").padStart(9, "0"), enc = new TextEncoder();
-  if (DEMO) return "demo-" + id;
-  const key = await crypto.subtle.importKey("raw", enc.encode(id), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits({name: "PBKDF2", hash: "SHA-256", salt: enc.encode(ID_SALT), iterations: 100000}, key, 256);
-  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, "0")).join("");
 }

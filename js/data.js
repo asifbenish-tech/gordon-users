@@ -92,6 +92,7 @@ export function startData() {
       adminOn = true;
       watch("staffAuth", l => { if (!l) return; S.auth = {}; for (const x of l) S.auth[x.id] = x; changed(); });
       watch("meta", l => { S.groupsDoc = (l || []).find(x => x.id === "groups") || {}; changed(); });
+      watch("pending", l => { S.pending = (l || []).sort((a, b) => (a.at || 0) - (b.at || 0)); changed(); });
       loadSources();
     }
     changed();
@@ -109,6 +110,15 @@ export async function saveAuth(p, patch) {
 // הסרה מהצוות: המסמך נשאר כ"מצבה" חסומה (off + removed), כדי שמכשיר שעדיין מחובר ייחסם מיד ולא יירשם מחדש
 export const removePerson = p => Promise.all([put("staff", p.uid, {name: p.name, groups: [], off: true, removed: true}), del("staffAuth", p.uid), del("photos", p.uid), del("push", p.uid)]);
 export const saveGroups = list => put("meta", "groups", {list});
+// בקשת עדכון עצמי: אישור כותב את המייל (staffAuth) ואת הטלפון והקבוצות (staff), ומוחק את הבקשה. דחייה רק מוחקת.
+export const pendingList = () => S.pending || [];
+export async function approvePending(req) {
+  const p = person(req.uid);
+  await saveStaff(p, {phone: req.phone || "", groups: (req.groups || []).filter(groupLabel)});
+  if (req.email) await saveAuth(p, {email: req.email});
+  await del("pending", req.uid);
+}
+export const rejectPending = req => del("pending", req.uid);
 // הצעה ממערכת השעות: מחנכים -> "מחנכים" + הבית של הכיתה. רק מוסיף, לא מסיר.
 export function suggestGroups() {
   const out = [];

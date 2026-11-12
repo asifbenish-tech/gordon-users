@@ -7,6 +7,7 @@ export const S = {
   staff: null,       // staff/*: [{id, name, full?, phone?, role?, groups, aliases?, off?, removed?}]
   auth: null,        // staffAuth/*: {uid: {h: [גיבובי ת"ז], email, role}}
   groupsDoc: null,   // meta/groups
+  pending: null,     // pending/*: בקשות עדכון עצמי שממתינות לאישור
   duty: null,        // לוח תורנות השמירה (מ-adgordon), לזיהוי שמות שלא שויכו
   err: ""
 };
