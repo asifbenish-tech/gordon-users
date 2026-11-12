@@ -62,7 +62,7 @@ async function submit(e) {
   st.busy = true; st.e = ""; render();
   try {
     const r = await call({a: "onboard", save: true, h: st.h, full, email, phone, groups: st.groups});
-    if (r.ok) st = {s: "done", name: st.name}; else { st.busy = false; st.e = r.error; }
+    if (r.ok) st = {s: "done", name: st.full || st.name}; else { st.busy = false; st.e = r.error; }
   } catch (x) { st.busy = false; st.e = "השליחה נכשלה. לבדוק את האינטרנט ולנסות שוב."; }
   render();
 }
