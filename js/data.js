@@ -114,7 +114,7 @@ export const saveGroups = list => put("meta", "groups", {list});
 export const pendingList = () => S.pending || [];
 export async function approvePending(req) {
   const p = person(req.uid);
-  await saveStaff(p, {phone: req.phone || "", groups: (req.groups || []).filter(groupLabel)});
+  await saveStaff(p, Object.assign({phone: req.phone || "", groups: (req.groups || []).filter(groupLabel)}, req.full ? {full: req.full} : {}));
   if (req.email) await saveAuth(p, {email: req.email});
   await del("pending", req.uid);
 }

@@ -17,8 +17,9 @@ function view() {
     '<button type="button" class="btn ghost" id="again">עדכון פרטים של מישהו אחר</button></div>';
   if (st.s === "form") {
     const gs = st.all && st.all.length ? st.all : DEFAULT_GROUPS;
-    return '<form class="card form wide" id="f" novalidate><h2>שלום ' + esc(st.name) + "</h2>" +
+    return '<form class="card form wide" id="f" novalidate><h2>שלום ' + esc(st.full || st.name) + "</h2>" +
       '<p>כאן מעדכנים את פרטיך. הפרטים נשלחים לאישור ההנהלה.</p>' + (st.e ? err(st.e) : "") +
+      '<label class="field"><span>שם מלא</span><input name="full" maxlength="50" required value="' + esc(st.full || "") + '" placeholder="שם פרטי ומשפחה"></label>' +
       '<label class="field"><span>מייל (לקבלת קוד הכניסה)</span><input name="email" type="email" dir="ltr" maxlength="80" required value="' + esc(st.email || "") + '"></label>' +
       '<label class="field"><span>טלפון נייד</span><input name="phone" type="tel" dir="ltr" inputmode="tel" maxlength="20" value="' + esc(st.phone || "") + '"></label>' +
       '<fieldset class="aud"><legend>לאילו קבוצות אני משתייך/ת (אפשר לסמן כמה)</legend>' +
@@ -46,7 +47,7 @@ async function checkId(e) {
   st = {s: "id", id, busy: true}; render();
   try {
     const h = await idHash(id), r = await call({a: "onboard", h});
-    if (r.ok) st = {s: "form", id, h, name: r.name, email: r.email || "", phone: r.phone || "", groups: r.groups || [], all: r.all || []};
+    if (r.ok) st = {s: "form", id, h, name: r.name, full: r.full || "", email: r.email || "", phone: r.phone || "", groups: r.groups || [], all: r.all || []};
     else st = {s: "id", id, e: r.error};
   } catch (x) { st = {s: "id", id, e: "אין חיבור לשרת. לבדוק את האינטרנט ולנסות שוב."}; }
   render();
@@ -54,11 +55,13 @@ async function checkId(e) {
 
 async function submit(e) {
   e.preventDefault();
-  const fd = new FormData(e.target), email = String(fd.get("email") || "").trim(), phone = normPhone(String(fd.get("phone") || "").trim());
-  if (!validMail(email)) { st.e = "צריך למלא כתובת מייל תקינה."; st.email = email; st.phone = phone; st.groups = fd.getAll("grp").map(String); render(); return; }
-  st.busy = true; st.e = ""; st.email = email; st.phone = phone; st.groups = fd.getAll("grp").map(String); render();
+  const fd = new FormData(e.target), full = String(fd.get("full") || "").trim(), email = String(fd.get("email") || "").trim(), phone = normPhone(String(fd.get("phone") || "").trim());
+  st.full = full; st.email = email; st.phone = phone; st.groups = fd.getAll("grp").map(String);
+  if (!full) { st.e = "צריך למלא שם מלא."; render(); return; }
+  if (!validMail(email)) { st.e = "צריך למלא כתובת מייל תקינה."; render(); return; }
+  st.busy = true; st.e = ""; render();
   try {
-    const r = await call({a: "onboard", save: true, h: st.h, email, phone, groups: st.groups});
+    const r = await call({a: "onboard", save: true, h: st.h, full, email, phone, groups: st.groups});
     if (r.ok) st = {s: "done", name: st.name}; else { st.busy = false; st.e = r.error; }
   } catch (x) { st.busy = false; st.e = "השליחה נכשלה. לבדוק את האינטרנט ולנסות שוב."; }
   render();
@@ -77,9 +80,9 @@ function demo(body) {
   if (!a) a = auth.find(x => !x.email && x.id !== uidOf("אסיף")) || auth[1];   // הדגמה: נופל לאיש צוות בלי מייל
   if (!a) return {ok: false, error: "תעודת הזהות לא נמצאה ברשימת הצוות. לפנות לאסיף."};
   const p = staff.find(x => x.id === a.id) || {};
-  if (!body.save) return {ok: true, name: a.name, email: a.email || "", phone: p.phone || "", groups: p.groups || [], all};
+  if (!body.save) return {ok: true, name: a.name, full: p.full || "", email: a.email || "", phone: p.phone || "", groups: p.groups || [], all};
   db.pending = (db.pending || []).filter(x => x.id !== a.id);
-  db.pending.push({id: a.id, uid: a.id, name: a.name, email: body.email, phone: body.phone, groups: (body.groups || []).filter(g => all.some(x => x.id === g)), at: Date.now()});
+  db.pending.push({id: a.id, uid: a.id, name: a.name, full: body.full || a.name, email: body.email, phone: body.phone, groups: (body.groups || []).filter(g => all.some(x => x.id === g)), at: Date.now()});
   ls("guDemoData", db);
   return {ok: true};
 }

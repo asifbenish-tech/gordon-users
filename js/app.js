@@ -26,7 +26,8 @@ function pendingHtml() {
   const g = ids => (ids || []).map(groupLabel).filter(Boolean).join(", ") || "בלי שיוך";
   return '<div class="card note warn"><b><i class="fa-solid fa-user-clock"></i> ' + list.length + ' בקשות עדכון פרטים ממתינות לאישור</b>' +
     '<p>אנשי צוות שעדכנו את פרטיהם דרך הקישור. אישור שומר את המייל, הטלפון והקבוצות. שום דבר לא נשמר עד שמאשרים.</p>' +
-    '<div class="plist">' + list.map(r => '<div class="pend" data-uid="' + esc(r.uid) + '"><div><b>' + esc(r.name) + '</b>' +
+    '<div class="plist">' + list.map(r => '<div class="pend" data-uid="' + esc(r.uid) + '"><div><b>' + esc(r.full || r.name) + '</b>' +
+      (r.full && r.full !== r.name ? '<span class="none">שם קצר: ' + esc(r.name) + '</span>' : '') +
       '<span dir="ltr">' + esc([r.email, r.phone].filter(Boolean).join(" · ")) + '</span><span class="none">קבוצות: ' + esc(g(r.groups)) + '</span></div>' +
       '<div class="pact"><button type="button" class="btn small" data-act="papprove">אישור</button><button type="button" class="btn ghost small" data-act="preject">דחייה</button></div></div>').join("") + "</div></div>";
 }
