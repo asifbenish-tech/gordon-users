@@ -14,9 +14,10 @@ export function editPerson(uid) {
   const login = !authOn() ? '<p class="hint"><i class="fa-solid fa-circle-info"></i> מייל, תעודת זהות ותפקיד מוגדרים כאן אחרי "ייבוא רשימת הצוות" (בראש המסך).</p>' :
     "<h3>כניסה לאפליקציות</h3>" + (isNew ? "" : '<p class="state' + (st.ok ? "" : " bad") + '">' + esc(st.text) + (n > 1 ? " · " + n + " תעודות" : "") + "</p>") +
     '<div class="two">' + field("מייל לקבלת קוד הכניסה", '<input name="email" type="email" dir="ltr" maxlength="80" value="' + esc(a.email || "") + '">') +
-    field(n ? "החלפת תעודת הזהות" : "תעודת זהות", '<input name="tz" inputmode="numeric" dir="ltr" maxlength="9" autocomplete="off"' + (n ? ' placeholder="ריק = בלי שינוי"' : "") + ">") + "</div>" +
+    field("תעודת זהות", '<input name="tz" inputmode="numeric" dir="ltr" maxlength="9" autocomplete="off" value="' + esc(a.tz || "") + '"' + (n && !a.tz ? ' placeholder="רשומה רק כקוד - להקליד כדי לשמור"' : "") + ">") + "</div>" +
     (me ? "" : field("תפקיד", roleSel(a.role || p.role), "רק \"הנהלה\" רואה את האפליקציה הזו ומנהל את הצוות.")) +
-    '<p class="hint">תעודת הזהות לא נשמרת: הדפדפן הופך אותה לקוד חד־כיווני, ורק הוא נשמר. לכן אי אפשר להציג ת"ז קיימת, רק להחליף.</p>';
+    '<p class="hint">תעודת הזהות היא המזהה של איש הצוות בכל המערכות. היא נשמרת במאגר הפרטי (רק ההנהלה והשרתים רואים), לא בגיט ולא בקבצים ציבוריים. ' +
+    'למחוק את השדה = להשאיר את מה שרשום.</p>';
   const html = '<form id="pf" novalidate>' +
     (isNew ? field("שם קצר (המזהה)", '<input name="name" required maxlength="40" placeholder="למשל: רותי">', "השם שמזהה את האדם בכל האפליקציות. אם הוא מופיע בלוח המערכות - אותו שם בדיוק. אי אפשר לשנות אחר כך.")
       : '<p class="hint">המזהה (השם בלוח המערכות): <b>' + esc(p.name) + "</b></p>") +
@@ -42,12 +43,13 @@ export function editPerson(uid) {
       if (off && !p.off && !confirm("לחסום את הכניסה של " + p.full + "?\nהחסימה מיידית, גם במכשיר שכבר מחובר.")) return;
       btn.disabled = true;
       const ok = await tryDo(async () => {
-        const h = tz ? await idHash(tz) : "", owner = h && hashOwner(h);
+        const z = tz ? tz.replace(/\D/g, "").padStart(9, "0") : "", same = z && z === a.tz;
+        const h = z && !same ? await idHash(z) : "", owner = h && hashOwner(h);
         if (owner && owner !== t.uid) throw "תעודת הזהות הזו כבר רשומה אצל " + person(owner).full + ".";
         const patch = {full: v("full"), phone: normPhone(v("phone")), groups: fd.getAll("grp").map(String), aliases: v("aliases").split(",").map(x => x.trim()).filter(Boolean)};
         if (isNew) Object.assign(patch, {off: false, removed: false}); else if (!me) patch.off = off;
         await saveStaff(t, patch);
-        if (authOn()) await saveAuth(t, Object.assign({email}, fd.has("role") ? {role: v("role")} : {}, h ? {h: [h]} : {}));
+        if (authOn()) await saveAuth(t, Object.assign({email}, fd.has("role") ? {role: v("role")} : {}, h ? {h: [h], tz: z} : {}));
       });
       if (ok) closeDlg(); else btn.disabled = false;
     };

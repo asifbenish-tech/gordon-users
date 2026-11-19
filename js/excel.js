@@ -7,13 +7,13 @@ import {idHash} from "./auth.js";
 import {writeXlsx, writeCsv, readTable} from "./xlsx.js";
 import {openDlg, closeDlg} from "./ui.js";
 
-const H = {name: "שם קצר (מזהה)", full: "שם מלא", phone: "טלפון", email: "מייל", role: "תפקיד", aliases: "כינויים", tz: "תעודת זהות (רק לחדש או להחלפה)"};
+const H = {name: "שם קצר (מזהה)", full: "שם מלא", phone: "טלפון", email: "מייל", role: "תפקיד", aliases: "כינויים", tz: "תעודת זהות"};
 const YES = /^(כן|v|x|✓|✔|1|true|\+)$/i;
 
 function table() {
   const gs = groups(), on = authOn();
   return [[H.name, H.full, H.phone, ...(on ? [H.email, H.role] : []), ...gs.map(g => g.label), H.aliases, ...(on ? [H.tz] : [])],
-    ...people().map(p => { const a = authOf(p.uid); return [p.name, p.full, p.phone, ...(on ? [a.email || "", roleLabel(a.role || p.role || "teacher")] : []), ...gs.map(g => p.groups.includes(g.id) ? "כן" : ""), p.aliases.join(", "), ...(on ? [""] : [])]; })];
+    ...people().map(p => { const a = authOf(p.uid); return [p.name, p.full, p.phone, ...(on ? [a.email || "", roleLabel(a.role || p.role || "teacher")] : []), ...gs.map(g => p.groups.includes(g.id) ? "כן" : ""), p.aliases.join(", "), ...(on ? [a.tz || ""] : [])]; })];
 }
 export function exportFile(kind) {
   const blob = kind === "csv" ? new Blob([writeCsv(table())], {type: "text/csv;charset=utf-8"}) : new Blob([writeXlsx(table(), "צוות")], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
@@ -57,8 +57,9 @@ async function plan(rows) {
       else if (role && role !== (a.role || p.role || "teacher")) { if (p.uid === S.user.uid) warns.push(who + "את התפקיד של עצמך אי אפשר לשנות מקובץ."); else { it.auth.role = role; it.notes.push("תפקיד: " + roleLabel(role)); } }
       const tz = v("tz").replace(/\D/g, "");
       if (tz && !validId(tz)) warns.push(who + "מספר תעודת הזהות לא תקין - לא ייובא.");
+      else if (tz && tz.padStart(9, "0") === a.tz) {}   // אותה ת"ז שכבר שמורה
       else if (tz) { const h = await idHash(tz), owner = hashOwner(h) || (items.find(x => x.auth.h && x.auth.h[0] === h) || {p: {}}).p.uid;
-        if (owner && owner !== p.uid) warns.push(who + "תעודת הזהות כבר רשומה אצל מישהו אחר - לא תיובא."); else if (!owner) { it.auth.h = [h]; it.notes.push((a.h || []).length ? "תעודת זהות: מוחלפת" : "תעודת זהות: נוספת"); } }
+        if (owner && owner !== p.uid) warns.push(who + "תעודת הזהות כבר רשומה אצל מישהו אחר - לא תיובא."); else { const had = (a.h || []).length; it.auth.tz = tz.padStart(9, "0"); if (!owner) it.auth.h = [h]; it.notes.push(owner ? "תעודת זהות: נשמרת (הקוד כבר רשום)" : had ? "תעודת זהות: מוחלפת" : "תעודת זהות: נוספת"); } }
     }
     if (isNew || it.notes.length) items.push(it);
   }

@@ -16,7 +16,7 @@ function shown() {
   const s = V.q.trim().toLowerCase();
   return people().filter(p => {
     if (V.flt === "!none" ? p.groups.length : V.flt === "!login" ? loginState(p).ok : V.flt && !p.groups.includes(V.flt)) return false;
-    return !s || [p.full, p.name, p.phone, authOf(p.uid).email || "", ...p.aliases].some(t => t.toLowerCase().includes(s));
+    return !s || [p.full, p.name, p.phone, authOf(p.uid).email || "", authOf(p.uid).tz || "", ...p.aliases].some(t => t.toLowerCase().includes(s));
   });
 }
 const pressed = (attr, list, cur) => list.map(x => '<button type="button" data-act="' + attr + '" data-v="' + esc(x.id) + '" aria-pressed="' + (x.id === cur) + '">' + esc(x.label) + "</button>").join("");
@@ -85,7 +85,7 @@ function render() {
   else if (S.staff == null) el.innerHTML = (S.err ? '<div class="err" role="alert">' + esc(S.err) + "</div>" : "") + '<p class="lead">טוען…</p>';
   else if (!admin) el.innerHTML = msg("fa-user-lock", "להנהלה בלבד", "שלום " + esc(person(S.user.uid).full) + ". ניהול הצוות פתוח רק למי שתפקידו הנהלה.");
   else {
-    if (!$("list")) el.innerHTML = '<div id="top" class="stack"></div><div class="tools"><input class="search" id="sq" type="search" placeholder="חיפוש לפי שם, טלפון או מייל" autocomplete="off">' +
+    if (!$("list")) el.innerHTML = '<div id="top" class="stack"></div><div class="tools"><input class="search" id="sq" type="search" placeholder="חיפוש לפי שם, טלפון, מייל או ת״ז" autocomplete="off">' +
       '<div class="seg" id="mode" role="group" aria-label="תצוגה"></div><span class="grow"></span>' +
       '<details class="menu"><summary class="btn ghost"><i class="fa-solid fa-file-excel"></i> אקסל</summary><div><button type="button" data-act="xlsx"><i class="fa-solid fa-download"></i> ייצוא לאקסל (xlsx)</button><button type="button" data-act="csv"><i class="fa-solid fa-download"></i> ייצוא ל-CSV</button><button type="button" data-act="pick"><i class="fa-solid fa-upload"></i> ייבוא מקובץ…</button>' +
       '<p class="hint">מייצאים, ממלאים טלפונים ומיילים באקסל, ומייבאים חזרה. לפני השמירה מוצגת רשימת השינויים.</p></div></details>' +
